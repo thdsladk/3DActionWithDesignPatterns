@@ -121,3 +121,5 @@ InitTestScene*.unity*
 
 # macOS Finder 생성 파일
 .DS_Store
+Docs/design/Player-StateCommand-설계계획.md
+Docs/patterns/State-Command-설명.md
