@@ -1,55 +1,59 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [RequireComponent(typeof(PlayerStat))]
 public class PlayerFire : MonoBehaviour
 {
-    [Header("발사 쿨다운")]
-    public float FireTimer = 0f;
-
     [Header("투사체")]
-    public GameObject BulletPrefab;
+    [FormerlySerializedAs("BulletPrefab")]
+    [SerializeField] private GameObject _bulletPrefab;
 
     [Header("공격 속도")]
-    public bool IsAttackSpeedBuff;
-
-    public bool IsAttackSpeedDebuff;
+    [FormerlySerializedAs("IsAttackSpeedBuff")]
+    [SerializeField] private bool _isAttackSpeedBuff;
+    [FormerlySerializedAs("IsAttackSpeedDebuff")]
+    [SerializeField] private bool _isAttackSpeedDebuff;
 
     [Header("관통")]
-    public bool IsPierceBuff;
+    [FormerlySerializedAs("IsPierceBuff")]
+    [SerializeField] private bool _isPierceBuff;
 
     [Header("치명타")]
-    public bool IsCritBuff;
+    [FormerlySerializedAs("IsCritBuff")]
+    [SerializeField] private bool _isCritBuff;
 
-    private Player player;
-    private PlayerStat stat;
+    private float _fireTimer = 0f; // 발사 쿨다운 누적 시간
+
+    private Player _player;
+    private PlayerStat _stat;
 
     private void Awake()
     {
-        player = GetComponent<Player>();
-        stat = GetComponent<PlayerStat>();
+        _player = GetComponent<Player>();
+        _stat = GetComponent<PlayerStat>();
     }
 
-    public void Update()
+    private void Update()
     {
         // 기절 중에는 발사 불가
-        if (player != null && player.IsStunned)
+        if (_player != null && _player.IsStunned)
         {
             return;
         }
 
-        bool attackSlowed = IsAttackSpeedDebuff || (player != null && player.IsAttackSlowed);
-        float attackSpeed = (IsAttackSpeedBuff ? stat.AttackSpeedBuffRate : 1) *
-                            (attackSlowed ? stat.AttackSpeedDebuffRate : 1) *
-                            stat.AttackSpeedBonus;
-        FireTimer += Time.deltaTime * attackSpeed;
-        if (FireTimer >= stat.FireRate)
+        bool attackSlowed = _isAttackSpeedDebuff || (_player != null && _player.IsAttackSlowed);
+        float attackSpeed = (_isAttackSpeedBuff ? _stat.AttackSpeedBuffRate : 1) *
+                            (attackSlowed ? _stat.AttackSpeedDebuffRate : 1) *
+                            _stat.AttackSpeedBonus;
+        _fireTimer += Time.deltaTime * attackSpeed;
+        if (_fireTimer >= _stat.FireRate)
         {
             Fire();
-            FireTimer -= stat.FireRate;
+            _fireTimer -= _stat.FireRate;
         }
     }
 
-    public void Fire()
+    private void Fire()
     {
         var normalMonsters = FindObjectsByType<NormalMonster>(FindObjectsSortMode.None);
         var dashMonsters = FindObjectsByType<DashMonster>(FindObjectsSortMode.None);
@@ -98,30 +102,28 @@ public class PlayerFire : MonoBehaviour
 
         float critTrial = Random.Range(0f, 1f);
 
-        GameObject gameObject = Instantiate(BulletPrefab, transform.position, Quaternion.identity);
-        gameObject.GetComponent<PlayerBullet>().MoveSpeed = stat.BulletSpeed;
-        gameObject.GetComponent<PlayerBullet>().Direction = targetDirection;
-        gameObject.GetComponent<PlayerBullet>().LifeTime = stat.BulletLifeTime;
-        gameObject.GetComponent<PlayerBullet>().Damage =
-            stat.Damage * (IsCritBuff ? (stat.CritChance >= critTrial ? stat.CritMultiplier : 1) : 1);
-        gameObject.GetComponent<PlayerBullet>().RemainPierce = IsPierceBuff ? stat.PierceCount : 1;
+        float damage = _stat.Damage * (_isCritBuff ? (_stat.CritChance >= critTrial ? _stat.CritMultiplier : 1) : 1);
+        int remainPierce = _isPierceBuff ? _stat.PierceCount : 1;
+
+        GameObject bulletObject = Instantiate(_bulletPrefab, transform.position, Quaternion.identity);
+        bulletObject.GetComponent<PlayerBullet>().Init(_stat.BulletSpeed, targetDirection, _stat.BulletLifeTime, damage, remainPierce);
     }
 
     // 증강: 공격 속도 +rate
     public void UpgradeAttackSpeed(float rate)
     {
-        stat.UpgradeAttackSpeed(rate);
+        _stat.UpgradeAttackSpeed(rate);
     }
 
     // 증강: 공격력 +rate (기본값 대비 누적)
     public void UpgradeDamage(float rate)
     {
-        stat.UpgradeDamage(rate);
+        _stat.UpgradeDamage(rate);
     }
 
     public void ResetStats()
     {
-        stat.ResetAttackBonus();
-        FireTimer = 0f;
+        _stat.ResetAttackBonus();
+        _fireTimer = 0f;
     }
 }

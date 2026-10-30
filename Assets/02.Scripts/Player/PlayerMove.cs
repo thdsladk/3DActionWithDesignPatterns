@@ -1,19 +1,16 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 [RequireComponent(typeof(PlayerStat))]
 public class PlayerMove : MonoBehaviour
 {
+    [Header("Components")]
+    [SerializeField] private Transform _cameraTransform;
+
     private float _currentSpeed = 0f;
     private bool _isDodge = false;
 
-
-    [Header("Components")]
     private CharacterController _controller;
-
-    [SerializeField] private Transform _cameraTransform;
-
     private Player _player;
     private PlayerStat _stat;
 
