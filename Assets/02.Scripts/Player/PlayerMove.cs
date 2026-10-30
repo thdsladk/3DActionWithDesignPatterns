@@ -2,22 +2,11 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.Serialization;
 
+[RequireComponent(typeof(PlayerStat))]
 public class PlayerMove : MonoBehaviour
 {
-    private float DodgeTime = 0.5f;
-
-    [Header("Stat")]
-    [SerializeField] private float _moveSpeed = 5f;
-
-    [SerializeField] private float _dodgeSpeed = 30f;
-
-    [SerializeField] private float _jumpSpeed = 10f; // 음 이거 왜있음? 
-
     private float _currentSpeed = 0f;
     private bool _isDodge = false;
-    private float _moveSpeedBonusRate = 0f; // 증강으로 늘어난 이동 속도 비율
-
-    public float MoveSpeed => _moveSpeed;
 
 
     [Header("Components")]
@@ -26,15 +15,15 @@ public class PlayerMove : MonoBehaviour
     [SerializeField] private Transform _cameraTransform;
 
     private Player _player;
-    private float _baseMoveSpeed;
+    private PlayerStat _stat;
 
     private void Awake()
     {
         _controller = GetComponent<CharacterController>();
         _player = GetComponent<Player>();
+        _stat = GetComponent<PlayerStat>();
 
-        _baseMoveSpeed = _moveSpeed;
-        _currentSpeed = _moveSpeed;
+        _currentSpeed = _stat.MoveSpeed;
     }
 
     private void Update()
@@ -61,7 +50,7 @@ public class PlayerMove : MonoBehaviour
             StartCoroutine(Dodge());
         }
 
-        float slowRate = _player != null && _player.IsMoveSlowed ? _player.MoveSlowRate : 1f;
+        float slowRate = _player != null && _player.IsMoveSlowed ? _stat.MoveSlowRate : 1f;
         Vector3 velocity = direction * _currentSpeed * slowRate * Time.deltaTime;
         _controller.Move(velocity);
     }
@@ -82,11 +71,10 @@ public class PlayerMove : MonoBehaviour
     // 증강: 이동 속도 +rate (기본값 대비 누적)
     public void UpgradeMoveSpeed(float rate)
     {
-        _moveSpeedBonusRate += rate;
-        _moveSpeed = _baseMoveSpeed * (1f + _moveSpeedBonusRate);
+        _stat.UpgradeMoveSpeed(rate);
         if (!_isDodge)
         {
-            _currentSpeed = _moveSpeed;
+            _currentSpeed = _stat.MoveSpeed;
         }
     }
 
@@ -94,19 +82,18 @@ public class PlayerMove : MonoBehaviour
     {
         StopAllCoroutines();
         _isDodge = false;
-        _moveSpeedBonusRate = 0f;
-        _moveSpeed = _baseMoveSpeed;
-        _currentSpeed = _moveSpeed;
+        _stat.ResetMoveBonus();
+        _currentSpeed = _stat.MoveSpeed;
     }
 
     private IEnumerator Dodge()
     {
         _isDodge = true;
-        _currentSpeed = _dodgeSpeed;
+        _currentSpeed = _stat.DodgeSpeed;
 
-        yield return new WaitForSeconds(DodgeTime);
+        yield return new WaitForSeconds(_stat.DodgeTime);
 
         _isDodge = false;
-        _currentSpeed = _moveSpeed;
+        _currentSpeed = _stat.MoveSpeed;
     }
 }
